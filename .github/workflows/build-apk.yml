@@ -1,0 +1,47 @@
+name: Build RG Construções APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - principal
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar proyecto
+        uses: actions/checkout@v4
+
+      - name: Instalar Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Descomprimir proyecto
+        run: |
+          mkdir -p proyecto
+          unzip -q RGConstrucoes-GitHub-APK.zip -d proyecto
+          echo "Contenido:"
+          find proyecto -maxdepth 3 -type f | head -100
+
+      - name: Encontrar proyecto Android
+        run: |
+          GRADLE_FILE=$(find proyecto -name "build.gradle" -type f | head -1)
+          PROJECT_DIR=$(dirname "$GRADLE_FILE")
+          echo "PROJECT_DIR=$PROJECT_DIR" >> $GITHUB_ENV
+          echo "Projeto encontrado em: $PROJECT_DIR"
+
+      - name: Compilar APK
+        run: |
+          cd "$PROJECT_DIR"
+          gradle assembleDebug --stacktrace
+
+      - name: Guardar APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: RG-Construcoes-APK
+          path: |
+            proyecto/**/build/outputs/apk/**/*.apk
